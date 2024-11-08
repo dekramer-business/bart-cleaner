@@ -42,7 +42,7 @@ def save_data(data):
 
 # given some a list of list names, list of lists of data points, number of points to simulate, whether to plot the distr.
 # returns a list of lists of points using normal distribution
-def norm_generator(data_points_list_names = None, data_points_list=None, num_points=1000, plot_it=False):
+def norm_generator(data_points_list_names = None, data_points_list=None, num_points=1000, name_x_y = ("Multiple Normal Distributions", 'Value', 'Density') , plot_it=False):
     if data_points_list is None: 
         return None
 
@@ -62,16 +62,18 @@ def norm_generator(data_points_list_names = None, data_points_list=None, num_poi
 
         # Plot if needed
         if plot_it:
+            num_colors = len(data_points_list_names)
+            colors = [plt.cm.rainbow(i / num_colors) for i in range(num_colors)]
             if data_points_list_names is not None:
-                sns.kdeplot(normal_dist, label=data_points_list_names[i], color=plt.cm.tab10(i))
+                sns.kdeplot(normal_dist, label=data_points_list_names[i], color=colors[i])
             else:
-                sns.kdeplot(normal_dist, label=f"Distribution {i + 1}", color=plt.cm.tab10(i))
+                sns.kdeplot(normal_dist, label=f"Distribution {i + 1}", color=colors[i])
 
     if plot_it:
-        plt.xlabel("Value")
-        plt.ylabel("Density")
+        plt.xlabel(name_x_y[1])
+        plt.ylabel(name_x_y[2])
         plt.legend()
-        plt.title("Multiple Normal Distributions")
+        plt.title(name_x_y[0])
         plt.show()
 
     return generated_distributions
@@ -86,6 +88,7 @@ def get_pm_and_time(cleaned_df, line_color):
     segments_PM = {}
     segments_Time = {}
     
+    # probably better to have nested for in this if, rather than checking every line
     if line_color == "red":
         last_station = None
         between_station_buffer = []
@@ -155,7 +158,76 @@ def get_pm_and_time(cleaned_df, line_color):
                     # set this station as the last station
                     last_station = station_name
                     between_station_buffer = []
+
+    else:  # yellow line
+        last_station = None
+        between_station_buffer = []
+        for row in cleaned_df.itertuples():
+            station_name = row.Station
+            if row.Direction == 'Southbound':  # keeping  segments
+
+                # if were on the train
+                if station_name == 'Between Stations':
+                    # append
+                    between_station_buffer.append(row.PM2_5_19)
+                    between_station_buffer.append(row.PM2_5_20)
+
+                else:
+                    # we hit a new station, add the buffer to segments_PM and segments_PM time
+                    if (last_station is not None) and (last_station != station_name):
+                        segment_name = station_name + '-' + last_station
+
+                        # catch dictionary doesnt have key case
+                        if segment_name not in segments_PM:
+                            segments_PM[segment_name] = []
+                            segments_Time[segment_name] = []
+
+                        # add the between station PM and Time data
+                        segments_Time[station_name + '-' + last_station].append(len(between_station_buffer)/2)
+                        segments_PM[station_name + '-' + last_station].extend([x for x in between_station_buffer if not math.isnan(x)])
+
+                    # set this station as the last station
+                    last_station = station_name
+                    between_station_buffer = []
+                
+            if row.Direction == 'Northbound':  # keeping segments and stations
+
+                # if were on the train
+                if station_name == 'Between Stations':
+                    # append
+                    between_station_buffer.append(row.PM2_5_19)
+                    between_station_buffer.append(row.PM2_5_20)
+
+                else:
+                    # we hit a new station, add the buffer to segments_PM and segments_PM time
+                    if (last_station is not None) and (last_station != station_name):
+                        segment_name = last_station + '-' + station_name
+
+                        # catch dictionary doesnt have key case
+                        if segment_name not in segments_PM:
+                            segments_PM[segment_name] = []
+                            segments_Time[segment_name] = []
+
+                        # add the between station PM and Time data
+                        segments_Time[last_station + '-' + station_name].append(len(between_station_buffer)/2)
+                        segments_PM[last_station + '-' + station_name].extend([x for x in between_station_buffer if not math.isnan(x)])
+
+                    # if station is in dictionary, add it
+                    if station_name not in stations_PM:
+                        stations_PM[station_name] = []
                     
+                    # get PM measurements
+                    PM2_5_19 = row.PM2_5_19
+                    PM2_5_20 = row.PM2_5_20
+                    # only append if measurement is a number
+                    if not math.isnan(PM2_5_19):
+                        stations_PM[station_name].append(PM2_5_19)
+                    if not math.isnan(PM2_5_20):
+                        stations_PM[station_name].append(PM2_5_20)
+
+                    # set this station as the last station
+                    last_station = station_name
+                    between_station_buffer = []     
 
     return (stations_PM, segments_PM, segments_Time)
 
@@ -169,15 +241,27 @@ def main():
         red_df = clean_data(red_df)
         yellow_df = clean_data(yellow_df)
 
-        # data_points = [2, 5, 16, 15.5, 17, 14.8, 16.2, 15.6, 16.5]
-        # norm_generator(data_points, 500)
-        (stations_PM, segments_PM, segments_Time) = get_pm_and_time(red_df, "red")
+        (red_stations_PM, red_segments_PM, red_segments_Time) = get_pm_and_time(red_df, "red")
+        (yellow_stations_PM, yellow_segments_PM, yellow_segments_Time) = get_pm_and_time(yellow_df, "yellow")
 
-        # Get list of keys
-        keys_list = list(stations_PM.keys())
-        values_list = list(stations_PM.values())
+        # stations_PM = red_stations_PM | yellow_stations_PM
+        # segments_PM = red_segments_PM | yellow_segments_PM
+        # segments_Time = red_segments_Time | yellow_segments_Time
 
-        norm_generator(keys_list, values_list, 5000, True)
+        # Get red station PM data, plot
+        red_keys_list = list(red_stations_PM.keys())
+        red_values_list = list(red_stations_PM.values())
+        red_norms = norm_generator(red_keys_list, red_values_list, 5000, ("Red station norms", "PM", "Density"), True)
+
+        # Get red segment Time data, plot
+        red_keys_list = list(red_segments_Time.keys())
+        red_values_list = list(red_segments_Time.values())
+        red_norms = norm_generator(red_keys_list, red_values_list, 5000, ("Red segment time", "Time", "Density"), True)
+
+        # Get yellow station PM data, plot
+        yellow_keys_list = list(yellow_stations_PM.keys())
+        yellow_values_list = list(yellow_stations_PM.values())
+        yellow_norms = norm_generator(yellow_keys_list, yellow_values_list, 5000, ("Red station norms", "PM", "Density"), True)
 
 if __name__ == "__main__":
     main()

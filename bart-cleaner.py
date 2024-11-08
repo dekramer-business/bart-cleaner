@@ -39,19 +39,36 @@ def save_data(data):
         print(f"Data saved successfully to {output_path}")
     except Exception as e:
         print(f"Error saving the file: {e}")
+    
+def plot_list_of_distributions(list_of_distributions = None, list_of_distribution_names = None, name_x_y = ("Multiple Normal Distributions", 'Value', 'Density')):
+    if list_of_distributions is None: 
+        return None
+    
+    plt.figure(figsize=(10, 6))
+    for i, distribution in enumerate(list_of_distributions):
+        num_colors = len(list_of_distribution_names)
+        colors = [plt.cm.rainbow(i / num_colors) for i in range(num_colors)]
+        if list_of_distribution_names is not None:
+            sns.kdeplot(distribution, label=list_of_distribution_names[i], color=colors[i])
+        else:
+            sns.kdeplot(distribution, label=f"Distribution {i + 1}", color=colors[i])
+    
+    plt.xlabel(name_x_y[1])
+    plt.ylabel(name_x_y[2])
+    plt.legend()
+    plt.title(name_x_y[0])
+    plt.show()
 
-# given some a list of list names, list of lists of data points, number of points to simulate, whether to plot the distr.
-# returns a list of lists of points using normal distribution
-def norm_generator(data_points_list_names = None, data_points_list=None, num_points=1000, name_x_y = ("Multiple Normal Distributions", 'Value', 'Density') , plot_it=False):
-    if data_points_list is None: 
+
+# given some a list of (lists of data points) and num_points
+# returns a list of distributed points, each of len num_points
+# distribution is normal
+def list_of_distributions_generator(data_points_list=None, num_points=1000):
+    if (data_points_list is None): 
         return None
 
     generated_distributions = []
 
-    # Generate and optionally plot each normal distribution
-    if plot_it:
-        plt.figure(figsize=(10, 6))
-    
     for i, data_points in enumerate(data_points_list):
         mean = np.mean(data_points)
         std_dev = np.std(data_points)
@@ -59,22 +76,6 @@ def norm_generator(data_points_list_names = None, data_points_list=None, num_poi
         # Generate normal distribution
         normal_dist = np.random.normal(mean, std_dev, num_points)
         generated_distributions.append(normal_dist)
-
-        # Plot if needed
-        if plot_it:
-            num_colors = len(data_points_list_names)
-            colors = [plt.cm.rainbow(i / num_colors) for i in range(num_colors)]
-            if data_points_list_names is not None:
-                sns.kdeplot(normal_dist, label=data_points_list_names[i], color=colors[i])
-            else:
-                sns.kdeplot(normal_dist, label=f"Distribution {i + 1}", color=colors[i])
-
-    if plot_it:
-        plt.xlabel(name_x_y[1])
-        plt.ylabel(name_x_y[2])
-        plt.legend()
-        plt.title(name_x_y[0])
-        plt.show()
 
     return generated_distributions
 
@@ -238,30 +239,17 @@ def main():
     data = load_csv(file_paths)
     if data is not None:
         (red_df, yellow_df) = data
-        red_df = clean_data(red_df)
-        yellow_df = clean_data(yellow_df)
+        (red_stations_PM, red_segments_PM, red_segments_Time) = get_pm_and_time(clean_data(red_df), "red")
+        (yellow_stations_PM, yellow_segments_PM, yellow_segments_Time) = get_pm_and_time(clean_data(yellow_df), "yellow")
 
-        (red_stations_PM, red_segments_PM, red_segments_Time) = get_pm_and_time(red_df, "red")
-        (yellow_stations_PM, yellow_segments_PM, yellow_segments_Time) = get_pm_and_time(yellow_df, "yellow")
+        # Get red station PM distr, plot
+        red_stations_PM_distribution = list_of_distributions_generator(list(red_stations_PM.values()), 5000)
+        plot_list_of_distributions(red_stations_PM_distribution, list(red_stations_PM.keys()), ("Red station norms", "PM", "Density"))
 
-        # stations_PM = red_stations_PM | yellow_stations_PM
-        # segments_PM = red_segments_PM | yellow_segments_PM
-        # segments_Time = red_segments_Time | yellow_segments_Time
+        # Get yellow station PM distr, plot
+        yellow_stations_PM_distribution = list_of_distributions_generator(list(yellow_stations_PM.values()), 5000)
+        plot_list_of_distributions(yellow_stations_PM_distribution, list(yellow_stations_PM.keys()), ("Yellow station norms", "PM", "Density"))
 
-        # Get red station PM data, plot
-        red_keys_list = list(red_stations_PM.keys())
-        red_values_list = list(red_stations_PM.values())
-        red_norms = norm_generator(red_keys_list, red_values_list, 5000, ("Red station norms", "PM", "Density"), True)
-
-        # Get red segment Time data, plot
-        red_keys_list = list(red_segments_Time.keys())
-        red_values_list = list(red_segments_Time.values())
-        red_norms = norm_generator(red_keys_list, red_values_list, 5000, ("Red segment time", "Time", "Density"), True)
-
-        # Get yellow station PM data, plot
-        yellow_keys_list = list(yellow_stations_PM.keys())
-        yellow_values_list = list(yellow_stations_PM.values())
-        yellow_norms = norm_generator(yellow_keys_list, yellow_values_list, 5000, ("Yellow station norms", "PM", "Density"), True)
 
 if __name__ == "__main__":
     main()

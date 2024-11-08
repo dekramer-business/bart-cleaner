@@ -261,7 +261,7 @@ def main():
         # Get yellow station PM data, plot
         yellow_keys_list = list(yellow_stations_PM.keys())
         yellow_values_list = list(yellow_stations_PM.values())
-        yellow_norms = norm_generator(yellow_keys_list, yellow_values_list, 5000, ("Red station norms", "PM", "Density"), True)
+        yellow_norms = norm_generator(yellow_keys_list, yellow_values_list, 5000, ("Yellow station norms", "PM", "Density"), True)
 
 if __name__ == "__main__":
     main()

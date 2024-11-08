@@ -98,11 +98,15 @@ def get_pm_and_time(cleaned_df, line_color):
                     # get PM measurements
                     PM2_5_19 = row.PM2_5_19
                     PM2_5_20 = row.PM2_5_20
-                    # only append if measurement is a number
-                    if not math.isnan(PM2_5_19):
-                        between_station_buffer.append(PM2_5_19)
-                    if not math.isnan(PM2_5_20):
-                        between_station_buffer.append(PM2_5_20)
+                    # # only append if measurement is a number
+                    # if not math.isnan(PM2_5_19):
+                    #     between_station_buffer.append(PM2_5_19)
+                    # if not math.isnan(PM2_5_20):
+                    #     between_station_buffer.append(PM2_5_20)
+                    # append
+                    between_station_buffer.append(PM2_5_19)
+                    between_station_buffer.append(PM2_5_20)
+
                 else:
                     # we hit a new station, add the buffer to segments_PM and segments_PM time
                     if (last_station is not None) and (last_station != station_name):
@@ -114,8 +118,8 @@ def get_pm_and_time(cleaned_df, line_color):
                             segments_Time[segment_name] = []
 
                         # add the between station PM and Time data
-                        segments_PM[last_station + '-' + station_name].extend(between_station_buffer)
                         segments_Time[last_station + '-' + station_name].append(len(between_station_buffer)/2)
+                        segments_PM[last_station + '-' + station_name].extend([x for x in between_station_buffer if not math.isnan(x)])
 
                     # if station is in dictionary, add it
                     if station_name not in stations_PM:
@@ -141,11 +145,15 @@ def get_pm_and_time(cleaned_df, line_color):
                     # get PM measurements
                     PM2_5_19 = row.PM2_5_19
                     PM2_5_20 = row.PM2_5_20
-                    # only append if measurement is a number
-                    if not math.isnan(PM2_5_19):
-                        between_station_buffer.append(PM2_5_19)
-                    if not math.isnan(PM2_5_20):
-                        between_station_buffer.append(PM2_5_20)
+                    # # only append if measurement is a number
+                    # if not math.isnan(PM2_5_19):
+                    #     between_station_buffer.append(PM2_5_19)
+                    # if not math.isnan(PM2_5_20):
+                    #     between_station_buffer.append(PM2_5_20)
+                    # append
+                    between_station_buffer.append(PM2_5_19)
+                    between_station_buffer.append(PM2_5_20)
+                    
                 else:
                     # we hit a new station, add the buffer to segments_PM and segments_PM time
                     if (last_station is not None) and (last_station != station_name):
@@ -157,8 +165,8 @@ def get_pm_and_time(cleaned_df, line_color):
                             segments_Time[segment_name] = []
 
                         # add the between station PM and Time data
-                        segments_PM[station_name + '-' + last_station].extend(between_station_buffer)
                         segments_Time[station_name + '-' + last_station].append(len(between_station_buffer)/2)
+                        segments_PM[station_name + '-' + last_station].extend([x for x in between_station_buffer if not math.isnan(x)])
 
                     # set this station as the last station
                     last_station = station_name
@@ -189,7 +197,6 @@ def main():
         keys_list = list(stations_PM.keys())
         values_list = list(stations_PM.values())
 
-        print(np.mean(stations_PM['16t']))
         norm_generator(keys_list, values_list, 5000, True)
 
 if __name__ == "__main__":

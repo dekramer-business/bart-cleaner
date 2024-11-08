@@ -95,17 +95,9 @@ def get_pm_and_time(cleaned_df, line_color):
 
                 # if were on the train
                 if station_name == 'Between Stations':
-                    # get PM measurements
-                    PM2_5_19 = row.PM2_5_19
-                    PM2_5_20 = row.PM2_5_20
-                    # # only append if measurement is a number
-                    # if not math.isnan(PM2_5_19):
-                    #     between_station_buffer.append(PM2_5_19)
-                    # if not math.isnan(PM2_5_20):
-                    #     between_station_buffer.append(PM2_5_20)
                     # append
-                    between_station_buffer.append(PM2_5_19)
-                    between_station_buffer.append(PM2_5_20)
+                    between_station_buffer.append(row.PM2_5_19)
+                    between_station_buffer.append(row.PM2_5_20)
 
                 else:
                     # we hit a new station, add the buffer to segments_PM and segments_PM time
@@ -142,18 +134,10 @@ def get_pm_and_time(cleaned_df, line_color):
                 
                 # if were on the train
                 if station_name == 'Between Stations':
-                    # get PM measurements
-                    PM2_5_19 = row.PM2_5_19
-                    PM2_5_20 = row.PM2_5_20
-                    # # only append if measurement is a number
-                    # if not math.isnan(PM2_5_19):
-                    #     between_station_buffer.append(PM2_5_19)
-                    # if not math.isnan(PM2_5_20):
-                    #     between_station_buffer.append(PM2_5_20)
                     # append
-                    between_station_buffer.append(PM2_5_19)
-                    between_station_buffer.append(PM2_5_20)
-                    
+                    between_station_buffer.append(row.PM2_5_19)
+                    between_station_buffer.append(row.PM2_5_20)
+
                 else:
                     # we hit a new station, add the buffer to segments_PM and segments_PM time
                     if (last_station is not None) and (last_station != station_name):
@@ -184,10 +168,6 @@ def main():
         (red_df, yellow_df) = data
         red_df = clean_data(red_df)
         yellow_df = clean_data(yellow_df)
-        # print(red_df.head())
-        # print(red_df.shape[0])  # num rows
-        # print(yellow_df.head())
-        # print(yellow_df.shape[0])  # num rows
 
         # data_points = [2, 5, 16, 15.5, 17, 14.8, 16.2, 15.6, 16.5]
         # norm_generator(data_points, 500)

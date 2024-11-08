@@ -91,7 +91,7 @@ def get_pm_and_time(cleaned_df, line_color):
                         between_station_buffer.append(PM2_5_20)
                 else:
                     # we hit a new station, add the buffer to segments_PM and segments_PM time
-                    if (last_station is not None) and (last_station is not station_name):
+                    if (last_station is not None) and (last_station != station_name):
                         segment_name = last_station + '-' + station_name
 
                         # catch dictionary doesnt have key case
@@ -134,7 +134,7 @@ def get_pm_and_time(cleaned_df, line_color):
                         between_station_buffer.append(PM2_5_20)
                 else:
                     # we hit a new station, add the buffer to segments_PM and segments_PM time
-                    if (last_station is not None) and (last_station is not station_name):
+                    if (last_station is not None) and (last_station != station_name):
                         segment_name = station_name + '-' + last_station
 
                         # catch dictionary doesnt have key case
@@ -170,9 +170,11 @@ def main():
         # data_points = [2, 5, 16, 15.5, 17, 14.8, 16.2, 15.6, 16.5]
         # norm_generator(data_points, 500)
 
+        print(get_pm_and_time(red_df, "red")[0])
+        print("((((((((((((((((((((((()))))))))))))))))))))))")
         print(get_pm_and_time(red_df, "red")[1])
-        # print("((((((((((((((((((((((()))))))))))))))))))))))")
-        # print(get_pm_and_time(red_df, "red")[2])
+        print("((((((((((((((((((((((()))))))))))))))))))))))")
+        print(get_pm_and_time(red_df, "red")[2])
 
 if __name__ == "__main__":
     main()

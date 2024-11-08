@@ -162,19 +162,17 @@ def main():
         (red_df, yellow_df) = data
         red_df = clean_data(red_df)
         yellow_df = clean_data(yellow_df)
-        print(red_df.head())
+        # print(red_df.head())
         # print(red_df.shape[0])  # num rows
         # print(yellow_df.head())
         # print(yellow_df.shape[0])  # num rows
 
         # data_points = [2, 5, 16, 15.5, 17, 14.8, 16.2, 15.6, 16.5]
         # norm_generator(data_points, 500)
+        (stations_PM, segments_PM, segments_Time) = get_pm_and_time(red_df, "red")
 
-        print(get_pm_and_time(red_df, "red")[0])
-        print("((((((((((((((((((((((()))))))))))))))))))))))")
-        print(get_pm_and_time(red_df, "red")[1])
-        print("((((((((((((((((((((((()))))))))))))))))))))))")
-        print(get_pm_and_time(red_df, "red")[2])
+        print(np.mean(stations_PM['Downtown Berkeley']))
+        norm_generator(stations_PM['Downtown Berkeley'], 5000, True)
 
 if __name__ == "__main__":
     main()

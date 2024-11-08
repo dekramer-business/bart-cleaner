@@ -40,27 +40,41 @@ def save_data(data):
     except Exception as e:
         print(f"Error saving the file: {e}")
 
-# given some data_points, number of points to simulate, whether to plot the distr.
-# returns a list of points using normal distribution
-def norm_generator(data_points = None, num_points = 1000, plot_it = False):
-    if data_points == None: return None
-    mean = np.mean(data_points)
-    std_dev = np.std(data_points)
+# given some a list of list names, list of lists of data points, number of points to simulate, whether to plot the distr.
+# returns a list of lists of points using normal distribution
+def norm_generator(data_points_list_names = None, data_points_list=None, num_points=1000, plot_it=False):
+    if data_points_list is None: 
+        return None
 
-    # generate normal distribution
-    normal_dist = np.random.normal(mean, std_dev, num_points)
+    generated_distributions = []
+
+    # Generate and optionally plot each normal distribution
+    if plot_it:
+        plt.figure(figsize=(10, 6))
+    
+    for i, data_points in enumerate(data_points_list):
+        mean = np.mean(data_points)
+        std_dev = np.std(data_points)
+
+        # Generate normal distribution
+        normal_dist = np.random.normal(mean, std_dev, num_points)
+        generated_distributions.append(normal_dist)
+
+        # Plot if needed
+        if plot_it:
+            if data_points_list_names is not None:
+                sns.kdeplot(normal_dist, label=data_points_list_names[i], color=plt.cm.tab10(i))
+            else:
+                sns.kdeplot(normal_dist, label=f"Distribution {i + 1}", color=plt.cm.tab10(i))
 
     if plot_it:
-        sns.kdeplot(normal_dist, label="Generated Normal Distribution", color="blue")
-
-        # Label x and y axis, 
         plt.xlabel("Value")
         plt.ylabel("Density")
         plt.legend()
-        plt.title("Normal Distribution")
+        plt.title("Multiple Normal Distributions")
         plt.show()
-    
-    return normal_dist
+
+    return generated_distributions
 
 # given a cleaned df containing minute-by-minute measurements
 # return three dictionarys (stations_PM, segments_PM, segment_Time)
@@ -171,8 +185,12 @@ def main():
         # norm_generator(data_points, 500)
         (stations_PM, segments_PM, segments_Time) = get_pm_and_time(red_df, "red")
 
-        print(np.mean(stations_PM['Downtown Berkeley']))
-        norm_generator(stations_PM['Downtown Berkeley'], 5000, True)
+        # Get list of keys
+        keys_list = list(stations_PM.keys())
+        values_list = list(stations_PM.values())
+
+        print(np.mean(stations_PM['16t']))
+        norm_generator(keys_list, values_list, 5000, True)
 
 if __name__ == "__main__":
     main()

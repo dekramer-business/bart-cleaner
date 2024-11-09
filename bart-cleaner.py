@@ -443,6 +443,8 @@ def main():
         commuterB = ("Downtown Berkeley", "24th St Mission")
         commuterC = ("Walnut Creek", "Powell St")
         commuterD = ("Walnut Creek", "Orinda")
+
+        # get their commutes
         commuteA = get_station_route(commuterA)
         commuteB = get_station_route(commuterB)
         commuteC = get_station_route(commuterC)

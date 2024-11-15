@@ -111,12 +111,12 @@ def list_of_distributions_generator(data_points_list=None, num_points=1000):
 
     return generated_distributions
 
-# given a cleaned df containing minute-by-minute measurements
+# given a cleaned df containing minute-by-minute measurements, line color, and whether to skip faulty data from red line
 # return three dictionarys (stations_PM, segments_PM, segment_Time)
 # stations_PM will have stations as keys, a list of all PM measurements as the value
 # segments_PM will have segments as keys, a list of all PM measurements as the value
 # segments_Time will have segments as keys, a list of all the number of minutes on that segment for each trip (should be length 8)
-def get_pm_and_time(cleaned_df, line_color):
+def get_pm_and_time(cleaned_df, line_color, skip_red19_bad_data = False):
     stations_PM = {}
     segments_PM = {}
     segments_Time = {}
@@ -132,8 +132,15 @@ def get_pm_and_time(cleaned_df, line_color):
                 # if were on the train
                 if station_name == 'Between Stations':
                     # append
-                    between_station_buffer.append(row.PM2_5_19)
-                    between_station_buffer.append(row.PM2_5_20)
+                    PM2_5_19 = row.PM2_5_19
+                    PM2_5_20 = row.PM2_5_20
+
+                    # if skipping bad data and satisfies conditions as bad data, just append monitor 20's data
+                    if skip_red19_bad_data and (PM2_5_19 == 1) and (PM2_5_19 < 3*PM2_5_20):
+                        between_station_buffer.append(row.PM2_5_20)
+                    else:
+                        between_station_buffer.append(row.PM2_5_19)
+                        between_station_buffer.append(row.PM2_5_20)
 
                 else:
                     # we hit a new station, add the buffer to segments_PM and segments_PM time
@@ -171,8 +178,15 @@ def get_pm_and_time(cleaned_df, line_color):
                 # if were on the train
                 if station_name == 'Between Stations':
                     # append
-                    between_station_buffer.append(row.PM2_5_19)
-                    between_station_buffer.append(row.PM2_5_20)
+                    PM2_5_19 = row.PM2_5_19
+                    PM2_5_20 = row.PM2_5_20
+
+                    # if skipping bad data and satisfies conditions as bad data, just append monitor 20's data
+                    if skip_red19_bad_data and (PM2_5_19 == 1) and (PM2_5_19 < 3*PM2_5_20):
+                        between_station_buffer.append(row.PM2_5_20)
+                    else:
+                        between_station_buffer.append(row.PM2_5_19)
+                        between_station_buffer.append(row.PM2_5_20)
 
                 else:
                     # we hit a new station, add the buffer to segments_PM and segments_PM time
@@ -285,6 +299,7 @@ def get_adjacent_station_pair(station1, station2):
     return None
 
 # copied straight from chat
+#! Known bug: Can't get all, fails to switch lines
 def get_station_route(start_end_station_tuple):
     """
     Given two station names, returns a route that connects them using adjacent stations.
@@ -338,8 +353,6 @@ def get_station_route(start_end_station_tuple):
 
 # pass a pandas df, prints the best fit distribution
 def determine_best_fit(data_points, plot = False):
-
-    plt.figure(figsize=(10, 6))
     f = Fitter(data_points,
            distributions=['gamma',
                           'lognorm',
@@ -347,8 +360,9 @@ def determine_best_fit(data_points, plot = False):
                           "burr",
                           "norm"])
     f.fit()
+    f.summary()
     if plot:
-        f.summary()
+        plt.figure(figsize=(10, 6))
         plt.show()
 
     return f.get_best(method = 'sumsquare_error')
@@ -420,8 +434,8 @@ def main():
 
     if data is not None:
         (red_df, yellow_df) = data
-        (red_stations_PM, red_segments_PM, red_segments_Time) = get_pm_and_time(clean_data(red_df), "red")
-        (yellow_stations_PM, yellow_segments_PM, yellow_segments_Time) = get_pm_and_time(clean_data(yellow_df), "yellow")
+        (red_stations_PM, red_segments_PM, red_segments_Time) = get_pm_and_time(clean_data(red_df), "red", True)
+        (yellow_stations_PM, yellow_segments_PM, yellow_segments_Time) = get_pm_and_time(clean_data(yellow_df), "yellow", True)
 
         # concat red and yellow dictionaries
         all_stations_PM = red_stations_PM | yellow_stations_PM
@@ -432,6 +446,13 @@ def main():
         all_stations_PM_mean_sd = dict_mean_sd(all_stations_PM)
         all_segments_PM_mean_sd = dict_mean_sd(all_segments_PM)
         all_segments_Time_mean_sd = dict_mean_sd(all_segments_Time)
+
+        # # check best fit for each station
+        # for station in list(all_stations_PM.keys()):
+        #     determine_best_fit(all_stations_PM[station], True)
+        #     keep_going = input("Continue? ")
+        #     if keep_going != "y" and keep_going != "Y" and keep_going != "":
+        #         break
 
         #! assume 'Rockridge-MacArthur' same as "Orinda-Rockridge"
         all_segments_PM_mean_sd['Rockridge-MacArthur'] = all_segments_PM_mean_sd['Orinda-Rockridge']
@@ -449,12 +470,6 @@ def main():
         commuteB = get_station_route(commuterB)
         commuteC = get_station_route(commuterC)
         commuteD = get_station_route(commuterD)
-
-        print("commuteA: ", commuteA)
-        print("commuteB: ", commuteB)
-        print("commuteC: ", commuteC)
-        print("commuteD: ", commuteD)
-        input("dfdsfsdf")
 
         # get distributions for each commuters exposure
         commuterA_exp_dist, commuterA_time_dist = generate_commuter_exp_dist(commuteA, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, num_to_sim)

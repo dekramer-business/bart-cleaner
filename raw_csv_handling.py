@@ -2,6 +2,16 @@ import math
 from station_handling import *
 from custom_warnings import *
 
+# only keep certain columns that we care about, rename them
+def clean_data(data):
+    # only keep the below columns
+    cols_to_keep = ["Date", "Color", "PM2.5_19 (ug/m3)", "PM2.5_20 (ug/m3)", "Station", "N/S", "Station"]
+    data = data.drop(columns=list(filter(lambda col: col not in cols_to_keep, data.columns)))
+
+    # rename
+    data.rename(columns={'PM2.5_19 (ug/m3)': 'PM2_5_19', 'PM2.5_20 (ug/m3)': 'PM2_5_20', 'N/S': 'Direction'}, inplace=True)
+    return data
+
 # given a cleaned df containing minute-by-minute measurements, line color, and whether to skip faulty data from red line
 # return three dictionarys (stations_PM, segments_PM, segment_Time)
 # stations_PM will have stations as keys, a list of all PM measurements as the value

@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from bart_data_handling import *
+from raw_csv_handling import *
 from station_handling import *
 from bart_plotting import *
 
@@ -20,16 +20,8 @@ def load_csv(file_paths):
 
     return (red_combined_df, yellow_combined_df)
 
-def clean_data(data):
-    # only keep the below columns
-    cols_to_keep = ["Date", "Color", "PM2.5_19 (ug/m3)", "PM2.5_20 (ug/m3)", "Station", "N/S", "Station"]
-    data = data.drop(columns=list(filter(lambda col: col not in cols_to_keep, data.columns)))
-
-    # rename
-    data.rename(columns={'PM2.5_19 (ug/m3)': 'PM2_5_19', 'PM2.5_20 (ug/m3)': 'PM2_5_20', 'N/S': 'Direction'}, inplace=True)
-    return data
-
-def save_data(data):
+# save data to a csv
+def save_data_csv(data):
     # Prompt user to enter the output file path
     output_path = input("Enter the path to save the cleaned CSV file (e.g., output.csv): ")
     try:
@@ -46,7 +38,6 @@ def list_of_distributions_generator(data_points_list=None, num_points=1000):
         return None
 
     generated_distributions = []
-
     for i, data_points in enumerate(data_points_list):
         mean = np.mean(data_points)
         std_dev = np.std(data_points)
@@ -56,7 +47,6 @@ def list_of_distributions_generator(data_points_list=None, num_points=1000):
         generated_distributions.append(normal_dist)
 
     return generated_distributions
-
 
 # given a dictionary with lists as values
 # returns new dictionary with (mean, std dev) as values
@@ -114,7 +104,7 @@ def generate_commuter_exp_dist(commuter = None, all_stations_PM_mean_sd = None, 
     return (commuter_exp_dist, commuter_time_dist)
 
 # little helper to make a pretty string for printing a commute
-def commute_string_maker(commute_tuple, commute_time_dist):
+def commuter_string_helper(commute_tuple, commute_time_dist):
     return commute_tuple[0] + ' to ' + commute_tuple[1] + ' (~' + str(round(np.mean(commute_time_dist), 1)) + ' mins)'
 
 
@@ -171,7 +161,7 @@ def main():
         commuters_exp_dist = [commuterA_exp_dist, commuterB_exp_dist, commuterC_exp_dist, commuterD_exp_dist]
 
         # plot those distributions
-        commute_strings = [commute_string_maker(commuterA, commuterA_time_dist), commute_string_maker(commuterB, commuterB_time_dist), commute_string_maker(commuterC, commuterC_time_dist), commute_string_maker(commuterD, commuterD_time_dist)]
+        commute_strings = [commuter_string_helper(commuterA, commuterA_time_dist), commuter_string_helper(commuterB, commuterB_time_dist), commuter_string_helper(commuterC, commuterC_time_dist), commuter_string_helper(commuterD, commuterD_time_dist)]
         plot_list_of_distributions(commuters_exp_dist, commute_strings, ("Commuters PM exposure compared", "(ug * min)/m^3", "Density"))
 
 

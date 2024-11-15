@@ -120,6 +120,9 @@ def get_pm_and_time(cleaned_df, line_color, skip_red19_bad_data = False):
     stations_PM = {}
     segments_PM = {}
     segments_Time = {}
+
+    if line_color == "red" and skip_red19_bad_data:
+        warnings.warn("ALERT: Skipping monitor 19's faulty 1s on the red line that are < 3 times that of monitor 20.")
     
     # probably better to have nested for in this if, rather than checking every line
     if line_color == "red":

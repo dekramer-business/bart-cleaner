@@ -54,36 +54,89 @@ def dict_mean_sd(dictionary):
     result = {key: (np.mean(value), np.std(value)) for key, value in dictionary.items()}
     return result
 
-# takes a commuter (list of start station, segments, end station), and mean and std deviations for all stations PM, segments PM, and segments Time, num to simulate
-# generates a monte carlo of the commuter's concentration * time
-# returns commuter's concentration * time dist, time dist
-# assumes 5 minute station wait time, plus or minus 2 mins
-def generate_commuter_exp_dist(commuter = None, all_stations_PM_mean_sd = None, all_segments_PM_mean_sd = None , all_segments_Time_mean_sd = None, num_to_sim = 1000):
-    # check for bad data
+# given a station, returns (average time, sd) of that station
+def generate_station_time(station):
+    color = station_colors[station]
 
-    commuter_exp_dist = []
+    if color == "yellow":
+        if station == "Pittsburg Center" or station == "Antioch":
+            return (20, 2)
+        else:
+            return (10, 2)
+    return (5, 2)
+
+# calc dose based on epa
+# units are micrograms/ (BW * day)
+def calculate_dose(C, IR, CF, ED, EF, AT, BW):
+    # print(f"C: {C}, IR: {IR}, CF: {CF}, ED: {ED}, EF: {EF}, AT: {AT}, BW: {BW}")
+
+    # Minutes per day
+    mins_per_day = 1440
+
+    # make ED in days
+    ED = ED/mins_per_day
+
+    top = C * IR * CF * ED * EF
+    bottom = AT * BW
+
+    # print("top/bottom: ", top/bottom)
+    # input("good? ")
+    return top/bottom
+
+# takes a commuter (list of start station, segments, end station), and mean and std deviations for all stations PM, segments PM, and segments Time, num to simulate
+# generates a monte carlo of the commuter's dose
+# returns commuter's dose dist, time dist
+# assumes 5 minute station wait time, plus or minus 2 mins
+def generate_commuter_exp_dist(commute = None, all_stations_PM_mean_sd = None, all_segments_PM_mean_sd = None , all_segments_Time_mean_sd = None, using_male_data = True, num_to_sim = 1000):
+    #! check for bad data
+
+    # get station data
+    commuter_dose_dist = []
     commuter_time_dist = []
-    start_station = commuter[0]
-    end_station = commuter[-1]
+    start_station = commute[0]
+    end_station = commute[-1]
     (start_station_PM_mean, start_station_PM_sd) = all_stations_PM_mean_sd[start_station]
     (end_station_PM_mean, end_station_PM_sd) = all_stations_PM_mean_sd[end_station]
-    commuter_segments = commuter[1:-1]
-    station_Time_mean = 5
-    station_Time_sd = 2
 
-    current_exposure = 0
+    # parse commute
+    commuter_segments = commute[1:-1]
+
+    # get time mean, sd for both stations
+    start_station_Time_mean, start_station_Time_sd = generate_station_time(start_station)
+    end_station_Time_mean, end_station_Time_sd = generate_station_time(end_station)
+
+    # average weight
+    average_male_weight = 200
+    average_female_weight = 170
+    BW = None
+    if using_male_data:
+        custom_warn("ALERT: Using MALE weight data")
+        BW = average_male_weight
+    else:
+        custom_warn("ALERT: Using FEMALE weight data")
+        BW = average_female_weight
+    
+    # average IR in m^3/day
+    IR = 16
+
+    current_dose = 0
     current_time = 0
     # run num_to_sim samples
     for i in range(num_to_sim):
         # sample from a normal distribution of the start and end station
-        time_sample1 = np.random.normal(station_Time_mean, station_Time_sd)
-        time_sample2 = np.random.normal(station_Time_mean, station_Time_sd)
+        start_station_ED = np.random.normal(start_station_Time_mean, start_station_Time_sd)
+        end_station_ED = np.random.normal(end_station_Time_mean, end_station_Time_sd)
 
-        # add start and end PM*time sample to current_exposure
-        current_exposure += np.random.normal(start_station_PM_mean, start_station_PM_sd) * time_sample1
-        current_exposure += np.random.normal(end_station_PM_mean, end_station_PM_sd) * time_sample2
         # add start and end time to current_time
-        current_time += time_sample1 + time_sample2
+        current_time += start_station_ED + end_station_ED
+
+        # add start and end dose sample to current_dose
+        start_station_PM_sample = np.random.normal(start_station_PM_mean, start_station_PM_sd)
+        end_station_PM_sample = np.random.normal(end_station_PM_mean, end_station_PM_sd)
+        # print("start_station name: ", start_station)
+        start_dose = calculate_dose(start_station_PM_sample, IR, 1, start_station_ED, 1, 1, BW)
+        end_dose = calculate_dose(end_station_PM_sample, IR, 1, end_station_ED, 1, 1, BW)
+        current_dose += start_dose + end_dose
 
         for num, segment  in enumerate(commuter_segments):
             # get PM and time data from this segment
@@ -92,16 +145,18 @@ def generate_commuter_exp_dist(commuter = None, all_stations_PM_mean_sd = None, 
 
             # sample time, multiply by PM sample and add to exposure
             segment_time_sample = np.random.normal(segment_Time_mean, segment_Time_sd)
-            segment_exposure = np.random.normal(segment_PM_mean, segment_PM_sd) * segment_time_sample
-            current_exposure += segment_exposure
+            segment_PM_sample = np.random.normal(segment_PM_mean, segment_PM_sd)
+            current_dose += calculate_dose(segment_PM_sample, IR, 1, segment_time_sample, 1, 1, BW)
+
+            # Sum time on segment
             current_time += segment_time_sample
         
         commuter_time_dist.append(current_time)
-        commuter_exp_dist.append(current_exposure)
-        current_exposure = 0
+        commuter_dose_dist.append(current_dose)
+        current_dose = 0
         current_time = 0
     
-    return (commuter_exp_dist, commuter_time_dist)
+    return (commuter_dose_dist, commuter_time_dist)
 
 # little helper to make a pretty string for printing a commute
 def commuter_string_helper(commute_tuple, commute_time_dist):
@@ -129,12 +184,21 @@ def main():
         all_segments_PM_mean_sd = dict_mean_sd(all_segments_PM)
         all_segments_Time_mean_sd = dict_mean_sd(all_segments_Time)
 
-        # # check best fit for each station
-        # for station in list(all_stations_PM.keys()):
-        #     determine_best_fit(all_stations_PM[station], True)
-        #     keep_going = input("Continue? ")
-        #     if keep_going != "y" and keep_going != "Y" and keep_going != "":
-        #         break
+        # print("(((((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))))")
+        # print("all_stations_PM: ", all_stations_PM)
+        # print("(((((((((())))))))))")
+        # print("all_stations_PM_mean_sd: ", all_stations_PM_mean_sd)
+        print("saving station data to csv")
+        all_stations_PM_mean_sd_df = pd.DataFrame(all_stations_PM_mean_sd)
+        save_data_csv(all_stations_PM_mean_sd_df)
+
+        # print("(((((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))))")
+        # print("all_segments_PM: ", all_segments_PM)
+        # print("(((((((((())))))))))")
+        # print("all_segments_PM_mean_sd: ", all_segments_PM_mean_sd)
+        print("saving segment data to csv")
+        all_segments_PM_mean_sd_df = pd.DataFrame(all_segments_PM_mean_sd)
+        save_data_csv(all_segments_PM_mean_sd_df)
 
         #! assume 'Rockridge-MacArthur' same as "Orinda-Rockridge"
         all_segments_PM_mean_sd['Rockridge-MacArthur'] = all_segments_PM_mean_sd['Orinda-Rockridge']
@@ -145,7 +209,7 @@ def main():
         commuterA = ("24th St Mission", "West Oakland")
         commuterB = ("Downtown Berkeley", "24th St Mission")
         commuterC = ("Walnut Creek", "Powell St")
-        commuterD = ("Walnut Creek", "Orinda")
+        commuterD = ("Rockridge", "Antioch")
 
         # get their commutes
         commuteA = get_station_route(commuterA)
@@ -162,7 +226,7 @@ def main():
 
         # plot those distributions
         commute_strings = [commuter_string_helper(commuterA, commuterA_time_dist), commuter_string_helper(commuterB, commuterB_time_dist), commuter_string_helper(commuterC, commuterC_time_dist), commuter_string_helper(commuterD, commuterD_time_dist)]
-        plot_list_of_distributions(commuters_exp_dist, commute_strings, ("Commuters PM exposure compared", "(ug * min)/m^3", "Density"))
+        plot_list_of_distributions(commuters_exp_dist, commute_strings, ("Male Commuters Dose compared", "ug/(kg * day)", "Density"))
 
 
 if __name__ == "__main__":

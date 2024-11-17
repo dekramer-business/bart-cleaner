@@ -8,6 +8,36 @@ station_names = [
     "Walnut Creek", "Lafayette", "Orinda", "Rockridge"
 ]
 
+station_colors = {
+    # Red Line stations
+    "Downtown Berkeley": "red",
+    "Ashby": "red",
+    "MacArthur": "red",
+    "19th St Oakland": "red",
+    "12th St Oakland": "red",
+    "West Oakland": "red",
+    "Embarcadero": "red",
+    "Montgomery St": "red",
+    "Powell St": "red",
+    "Civic Center/UN Plaza": "red",
+    "16th St Mission": "red",
+    "24th St Mission": "red",
+    
+    # Yellow Line stations
+    "Antioch": "yellow",
+    "Pittsburg Center": "yellow",
+    "Transfer Stop": "yellow",
+    "Pittsburg/Bay Point": "yellow",
+    "North Concord/Martinez": "yellow",
+    "Concord": "yellow",
+    "Pleasant Hill/Contra Costa Centre": "yellow",
+    "Walnut Creek": "yellow",
+    "Lafayette": "yellow",
+    "Orinda": "yellow",
+    "Rockridge": "yellow",
+    "MacArthur": "yellow"  # Shared with Red Line
+}
+
 # List of adjacent stations as pairs (Uptown-Downtown) for both red and yellow lines
 adjacent_stations = [
     # Red Line (or others if specified)
@@ -30,7 +60,7 @@ adjacent_stations = [
     ("Pittsburg/Bay Point", "North Concord/Martinez"),
     ("North Concord/Martinez", "Concord"),
     ("Concord", "Pleasant Hill/Contra Costa Centre"),
-    ("Pleasant Hill/Contra Costa Center", "Walnut Creek"),
+    ("Pleasant Hill/Contra Costa Centre", "Walnut Creek"),
     ("Walnut Creek", "Lafayette"),
     ("Lafayette", "Orinda"),
     ("Orinda", "Rockridge"),
@@ -58,7 +88,6 @@ def get_adjacent_station_pair(station1, station2):
     return None
 
 # copied straight from chat
-#! Known bug: Can't get all, fails to switch lines
 def get_station_route(start_end_station_tuple):
     """
     Given two station names, returns a route that connects them using adjacent stations.

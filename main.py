@@ -134,8 +134,8 @@ def generate_commuter_exp_dist(commute = None, all_stations_PM_mean_sd = None, a
         start_station_PM_sample = np.random.normal(start_station_PM_mean, start_station_PM_sd)
         end_station_PM_sample = np.random.normal(end_station_PM_mean, end_station_PM_sd)
         # print("start_station name: ", start_station)
-        start_dose = calculate_dose(start_station_PM_sample, IR, 1, start_station_ED, 1, 1, BW)
-        end_dose = calculate_dose(end_station_PM_sample, IR, 1, end_station_ED, 1, 1, BW)
+        start_dose = calculate_dose(start_station_PM_sample, IR, 1, start_station_ED, 2, 1, BW)
+        end_dose = calculate_dose(end_station_PM_sample, IR, 1, end_station_ED, 2, 1, BW)
         current_dose += start_dose + end_dose
 
         for num, segment  in enumerate(commuter_segments):
@@ -146,7 +146,7 @@ def generate_commuter_exp_dist(commute = None, all_stations_PM_mean_sd = None, a
             # sample time, multiply by PM sample and add to exposure
             segment_time_sample = np.random.normal(segment_Time_mean, segment_Time_sd)
             segment_PM_sample = np.random.normal(segment_PM_mean, segment_PM_sd)
-            current_dose += calculate_dose(segment_PM_sample, IR, 1, segment_time_sample, 1, 1, BW)
+            current_dose += calculate_dose(segment_PM_sample, IR, 1, segment_time_sample, 2, 1, BW)
 
             # Sum time on segment
             current_time += segment_time_sample

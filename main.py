@@ -106,8 +106,8 @@ def generate_commuter_exp_dist(commute = None, all_stations_PM_mean_sd = None, a
     end_station_Time_mean, end_station_Time_sd = generate_station_time(end_station)
 
     # average weight
-    average_male_weight = 200
-    average_female_weight = 170
+    average_male_weight = 90.7185
+    average_female_weight = 77.1107
     BW = None
     if using_male_data:
         custom_warn("ALERT: Using MALE weight data")

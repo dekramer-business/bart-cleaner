@@ -20,16 +20,30 @@ def load_csv(file_paths):
 
     return (red_combined_df, yellow_combined_df)
 
-# save data to a csv
-def save_data_csv(data, output_path = None):
-    # Prompt user to enter the output file path
+import os
+
+# Save data to a CSV
+def save_data_csv(data, output_path=None):
+    # Define the default folder
+    default_folder = "saved_data"
+    # Ensure the folder exists
+    os.makedirs(default_folder, exist_ok=True)
+    
     if output_path is None:
-        output_path = input("Enter the path to save the cleaned CSV file (e.g., output.csv): ")
+        # Prompt user for a file name and save it in the default folder
+        file_name = input("Enter the file name to save the cleaned CSV (e.g., output.csv): ")
+        output_path = os.path.join(default_folder, file_name)
+    else:
+        # Ensure the output path is within the default folder
+        output_path = os.path.join(default_folder, output_path)
+    
     try:
+        # Save the data to the specified path
         data.to_csv(output_path, index=False)
         print(f"Data saved successfully to {output_path}")
     except Exception as e:
         print(f"Error saving the file: {e}")
+
 
 # given some a list of (lists of data points) and num_points
 # returns a list of distributed points, each of len num_points
@@ -242,12 +256,12 @@ def main():
             file_name = "female_commuter_dose_mean_sd.csv"
         plot_list_of_distributions(commuters_exp_dist_dict.values(), commute_strings, (plot_name, "ug/(kg * day)", "Density"))
 
+
         # commuters_exp_dist_mean_sd = dict_mean_sd(commuters_exp_dist_dict)
         # print("saving commuter dose data to csv")
         # commuters_exp_dist_mean_sd_df = pd.DataFrame(commuters_exp_dist_mean_sd)
         # save_data_csv(commuters_exp_dist_mean_sd_df, file_name)
         
-
 
 if __name__ == "__main__":
     main()

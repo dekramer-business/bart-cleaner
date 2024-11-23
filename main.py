@@ -21,9 +21,10 @@ def load_csv(file_paths):
     return (red_combined_df, yellow_combined_df)
 
 # save data to a csv
-def save_data_csv(data):
+def save_data_csv(data, output_path = None):
     # Prompt user to enter the output file path
-    output_path = input("Enter the path to save the cleaned CSV file (e.g., output.csv): ")
+    if output_path is None:
+        output_path = input("Enter the path to save the cleaned CSV file (e.g., output.csv): ")
     try:
         data.to_csv(output_path, index=False)
         print(f"Data saved successfully to {output_path}")
@@ -121,8 +122,10 @@ def generate_commuter_exp_dist(commute = None, all_stations_PM_mean_sd = None, a
 
     current_dose = 0
     current_time = 0
+    tester = 0
     # run num_to_sim samples
     for i in range(num_to_sim):
+        tester+=1
         # sample from a normal distribution of the start and end station
         start_station_ED = np.random.normal(start_station_Time_mean, start_station_Time_sd)
         end_station_ED = np.random.normal(end_station_Time_mean, end_station_Time_sd)
@@ -156,18 +159,23 @@ def generate_commuter_exp_dist(commute = None, all_stations_PM_mean_sd = None, a
         current_dose = 0
         current_time = 0
     
+    print("tester: ", tester)
     return (commuter_dose_dist, commuter_time_dist)
 
 # little helper to make a pretty string for printing a commute
-def commuter_string_helper(commute_tuple, commute_time_dist):
-    return commute_tuple[0] + ' to ' + commute_tuple[1] + ' (~' + str(round(np.mean(commute_time_dist), 1)) + ' mins)'
+def commuter_string_helper(commute_tuple, commute_time_dist = None):
+    if commute_time_dist is not None:
+        return commute_tuple[0] + ' to ' + commute_tuple[1] + ' (~' + str(round(np.mean(commute_time_dist), 1)) + ' mins)'
+    else:
+        return commute_tuple[0] + ' to ' + commute_tuple[1]
 
 
 def main():
     # file_path = input("Feed me the csv file_path.")
     file_paths = ['./csvs/red1.csv', './csvs/red2.csv', './csvs/yellow1.csv', './csvs/yellow2.csv']
     data = load_csv(file_paths)
-    num_to_sim = 5000
+    num_to_sim = 500
+    using_male_data = False
 
     if data is not None:
         (red_df, yellow_df) = data
@@ -188,17 +196,17 @@ def main():
         # print("all_stations_PM: ", all_stations_PM)
         # print("(((((((((())))))))))")
         # print("all_stations_PM_mean_sd: ", all_stations_PM_mean_sd)
-        print("saving station data to csv")
-        all_stations_PM_mean_sd_df = pd.DataFrame(all_stations_PM_mean_sd)
-        save_data_csv(all_stations_PM_mean_sd_df)
+        # print("saving station data to csv")
+        # all_stations_PM_mean_sd_df = pd.DataFrame(all_stations_PM_mean_sd)
+        # save_data_csv(all_stations_PM_mean_sd_df)
 
         # print("(((((((((((((((((((((((((((((((((())))))))))))))))))))))))))))))))))")
         # print("all_segments_PM: ", all_segments_PM)
         # print("(((((((((())))))))))")
         # print("all_segments_PM_mean_sd: ", all_segments_PM_mean_sd)
-        print("saving segment data to csv")
-        all_segments_PM_mean_sd_df = pd.DataFrame(all_segments_PM_mean_sd)
-        save_data_csv(all_segments_PM_mean_sd_df)
+        # print("saving segment data to csv")
+        # all_segments_PM_mean_sd_df = pd.DataFrame(all_segments_PM_mean_sd)
+        # save_data_csv(all_segments_PM_mean_sd_df)
 
         #! assume 'Rockridge-MacArthur' same as "Orinda-Rockridge"
         all_segments_PM_mean_sd['Rockridge-MacArthur'] = all_segments_PM_mean_sd['Orinda-Rockridge']
@@ -206,10 +214,10 @@ def main():
         custom_warn("ALERT: Remember, we assume Rockridge-MacArthur same as Orinda-Rockridge")
 
         # make some commuters, get their routes
-        commuterA = ("24th St Mission", "West Oakland")
+        commuterA = ("West Oakland", "24th St Mission")
         commuterB = ("Downtown Berkeley", "24th St Mission")
         commuterC = ("Walnut Creek", "Powell St")
-        commuterD = ("Rockridge", "Antioch")
+        commuterD = ("Antioch", "Rockridge")
 
         # get their commutes
         commuteA = get_station_route(commuterA)
@@ -217,16 +225,28 @@ def main():
         commuteC = get_station_route(commuterC)
         commuteD = get_station_route(commuterD)
 
-        # get distributions for each commuters exposure
-        commuterA_exp_dist, commuterA_time_dist = generate_commuter_exp_dist(commuteA, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, num_to_sim)
-        commuterB_exp_dist, commuterB_time_dist = generate_commuter_exp_dist(commuteB, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, num_to_sim)
-        commuterC_exp_dist, commuterC_time_dist = generate_commuter_exp_dist(commuteC, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, num_to_sim)
-        commuterD_exp_dist, commuterD_time_dist = generate_commuter_exp_dist(commuteD, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, num_to_sim)
-        commuters_exp_dist = [commuterA_exp_dist, commuterB_exp_dist, commuterC_exp_dist, commuterD_exp_dist]
+        # get distributions for each commuters exposure, save to dictionary
+        commuterB_exp_dist, commuterB_time_dist = generate_commuter_exp_dist(commuteB, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim)
+        commuterC_exp_dist, commuterC_time_dist = generate_commuter_exp_dist(commuteC, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim)
+        commuterD_exp_dist, commuterD_time_dist = generate_commuter_exp_dist(commuteD, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim)
+        commuterA_exp_dist, commuterA_time_dist = generate_commuter_exp_dist(commuteA, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim)
+        commuters_exp_dist_dict = {commuter_string_helper(commuterA): commuterA_exp_dist, commuter_string_helper(commuterB): commuterB_exp_dist, commuter_string_helper(commuterC): commuterC_exp_dist, commuter_string_helper(commuterD): commuterD_exp_dist}
 
         # plot those distributions
         commute_strings = [commuter_string_helper(commuterA, commuterA_time_dist), commuter_string_helper(commuterB, commuterB_time_dist), commuter_string_helper(commuterC, commuterC_time_dist), commuter_string_helper(commuterD, commuterD_time_dist)]
-        plot_list_of_distributions(commuters_exp_dist, commute_strings, ("Male Commuters Dose compared", "ug/(kg * day)", "Density"))
+        if using_male_data:
+            plot_name = "Male Commuters Dose Compared"
+            file_name = "male_commuter_dose_mean_sd.csv"
+        else:
+            plot_name = "Female Commuters Dose Compared"
+            file_name = "female_commuter_dose_mean_sd.csv"
+        plot_list_of_distributions(commuters_exp_dist_dict.values(), commute_strings, (plot_name, "ug/(kg * day)", "Density"))
+
+        # commuters_exp_dist_mean_sd = dict_mean_sd(commuters_exp_dist_dict)
+        # print("saving commuter dose data to csv")
+        # commuters_exp_dist_mean_sd_df = pd.DataFrame(commuters_exp_dist_mean_sd)
+        # save_data_csv(commuters_exp_dist_mean_sd_df, file_name)
+        
 
 
 if __name__ == "__main__":

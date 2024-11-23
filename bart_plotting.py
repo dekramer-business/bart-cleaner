@@ -20,21 +20,35 @@ def determine_best_fit(data_points, plot = False):
     return f.get_best(method = 'sumsquare_error')
 
 
-def plot_list_of_distributions(list_of_distributions = None, list_of_distribution_names = None, name_x_y = ("Multiple Normal Distributions", 'Value', 'Density')):
-    if list_of_distributions is None: 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# alternates between red and blue and solid and dashed lines for plotting distributions
+def plot_list_of_distributions(list_of_distributions=None, list_of_distribution_names=None, name_x_y=("Multiple Normal Distributions", 'Value', 'Density')):
+    if list_of_distributions is None:
         return None
-    
+
     plt.figure(figsize=(10, 6))
+
+    # Define line styles and fixed colors
+    line_styles = ['-', '--']  # Solid and dashed lines
+    colors = ['red', 'blue']  # Red for first pair, blue for second, and so on
+
     for i, distribution in enumerate(list_of_distributions):
-        num_colors = len(list_of_distribution_names)
-        colors = [plt.cm.rainbow(i / num_colors) for i in range(num_colors)]
-        if list_of_distribution_names is not None:
-            sns.kdeplot(distribution, label=list_of_distribution_names[i], color=colors[i])
-        else:
-            sns.kdeplot(distribution, label=f"Distribution {i + 1}", color=colors[i])
-    
+        color_index = i // 2  # Pair distributions with the same color
+        line_style = line_styles[i % 2]  # Alternate between solid and dashed
+        
+        sns.kdeplot(
+            distribution, 
+            label=list_of_distribution_names[i] if list_of_distribution_names else f"Distribution {i + 1}", 
+            color=colors[color_index % len(colors)],  # Alternate between red and blue
+            linestyle=line_style,
+            linewidth=3
+        )
+
     plt.xlabel(name_x_y[1])
     plt.ylabel(name_x_y[2])
     plt.legend()
     plt.title(name_x_y[0])
     plt.show()
+

@@ -75,9 +75,9 @@ def generate_station_time(station):
 
     if color == "yellow":
         if station == "Pittsburg Center" or station == "Antioch":
-            return (20, 2)
+            return (5, 2)
         else:
-            return (10, 2)
+            return (5, 2)
     return (5, 2)
 
 # calc dose based on epa
@@ -118,7 +118,8 @@ def generate_commuter_exp_dist(commute = None, all_stations_PM_mean_sd = None, a
 
     # get time mean, sd for both stations
     start_station_Time_mean, start_station_Time_sd = generate_station_time(start_station)
-    end_station_Time_mean, end_station_Time_sd = generate_station_time(end_station)
+    # end_station_Time_mean, end_station_Time_sd = generate_station_time(end_station)
+    end_station_Time_mean, end_station_Time_sd = (2,1)
 
     # average weight
     average_male_weight = 90.7185
@@ -188,7 +189,7 @@ def main():
     # file_path = input("Feed me the csv file_path.")
     file_paths = ['./csvs/red1.csv', './csvs/red2.csv', './csvs/yellow1.csv', './csvs/yellow2.csv']
     data = load_csv(file_paths)
-    num_to_sim = 500
+    num_to_sim = 500000
     using_male_data = False
 
     if data is not None:
@@ -228,10 +229,10 @@ def main():
         custom_warn("ALERT: Remember, we assume Rockridge-MacArthur same as Orinda-Rockridge")
 
         # make some commuters, get their routes
-        commuterA = ("West Oakland", "24th St Mission")
+        commuterA = ("24th St Mission", "Embarcadero")
         commuterB = ("Downtown Berkeley", "24th St Mission")
-        commuterC = ("Walnut Creek", "Powell St")
-        commuterD = ("Antioch", "Rockridge")
+        commuterC = ("Walnut Creek", "Embarcadero")
+        commuterD = ("Pittsburg/Bay Point", "Rockridge")
 
         # get their commutes
         commuteA = get_station_route(commuterA)
@@ -257,10 +258,10 @@ def main():
         plot_list_of_distributions(commuters_exp_dist_dict.values(), commute_strings, (plot_name, "ug/(kg * day)", "Density"))
 
 
-        # commuters_exp_dist_mean_sd = dict_mean_sd(commuters_exp_dist_dict)
-        # print("saving commuter dose data to csv")
-        # commuters_exp_dist_mean_sd_df = pd.DataFrame(commuters_exp_dist_mean_sd)
-        # save_data_csv(commuters_exp_dist_mean_sd_df, file_name)
+        commuters_exp_dist_mean_sd = dict_mean_sd(commuters_exp_dist_dict)
+        print("saving commuter dose data to csv")
+        commuters_exp_dist_mean_sd_df = pd.DataFrame(commuters_exp_dist_mean_sd)
+        save_data_csv(commuters_exp_dist_mean_sd_df, file_name)
         
 
 if __name__ == "__main__":

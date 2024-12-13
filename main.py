@@ -187,6 +187,7 @@ def analyze_all_possible_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_
 
     # Generate all start and stop combinations with n total stations in the commute
     stations_n_apart = get_station_pairs_with_min_distance(stations_n_distance)
+    print("Number of stations n apart: ", len(stations_n_apart))
 
     # For each commute generate a distribution, then find mean of pm and time (is that redundant?)
     all_doses_and_ground_percents = []
@@ -281,8 +282,8 @@ def main():
     # params
     stations_n_distance = 5 # simulate commutes length n
     num_to_sim = 5000
-    using_male_data = True
-    save_to_csv = True
+    using_male_data = False
+    save_to_csv = False
 
     # alert on what data
     if using_male_data:

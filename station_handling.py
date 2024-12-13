@@ -164,7 +164,7 @@ def get_station_pairs_with_min_distance(min_stations_on_commute):
         return float('inf')  # Return infinity if no route exists
 
     # Generate all unique pairs
-    stations = list(adjacency_list.keys())
+    stations = [station for station in adjacency_list.keys() if station != 'Transfer Stop']
     result = []
     
     for i in range(len(stations)):

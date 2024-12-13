@@ -8,6 +8,37 @@ station_names = [
     "Walnut Creek", "Lafayette", "Orinda", "Rockridge"
 ]
 
+# Dictionary mapping stations to whether they are above or below ground
+station_above_or_below = {
+    # Red Line stations
+    "Downtown Berkeley": "below",
+    "Ashby": "below",
+    "MacArthur": "above",  # Shared with Yellow Line
+    "19th St Oakland": "below",
+    "12th St Oakland": "below",
+    "West Oakland": "above",
+    "Embarcadero": "below",
+    "Montgomery St": "below",
+    "Powell St": "below",
+    "Civic Center/UN Plaza": "below",
+    "16th St Mission": "below",
+    "24th St Mission": "below",
+
+    # Yellow Line stations
+    "Antioch": "above",
+    "Pittsburg Center": "above",
+    "Transfer Stop": "above",
+    "Pittsburg/Bay Point": "above",
+    "North Concord/Martinez": "above",
+    "Concord": "above",
+    "Pleasant Hill/Contra Costa Centre": "above",
+    "Walnut Creek": "above",
+    "Lafayette": "above",
+    "Orinda": "above",
+    "Rockridge": "above"
+}
+
+
 station_colors = {
     # Red Line stations
     "Downtown Berkeley": "red",
@@ -88,6 +119,64 @@ def get_adjacent_station_pair(station1, station2):
     return None
 
 # copied straight from chat
+from collections import deque
+
+def get_station_pairs_with_min_distance(min_stations_on_commute):
+    """
+    Returns a list of tuples (x, y) where stations x and y are at least `n` stations apart.
+    Each pair (x, y) is unique, meaning (y, x) will not be included if (x, y) is already in the list.
+    
+    :param adjacent_stations: A list of tuples representing directly connected stations.
+    :param n: Minimum number of stations between the pairs.
+    :return: A list of tuples (x, y).
+    """
+    if min_stations_on_commute <= 0:
+        return None
+
+
+    # Create adjacency list
+    adjacency_list = {}
+    for station1, station2 in adjacent_stations:
+        if station1 not in adjacency_list:
+            adjacency_list[station1] = []
+        if station2 not in adjacency_list:
+            adjacency_list[station2] = []
+        adjacency_list[station1].append(station2)
+        adjacency_list[station2].append(station1)
+
+    # Function to calculate the distance between two stations
+    def bfs_distance(start_station, end_station):
+        queue = deque([(start_station, 0)])  # Holds (current_station, distance)
+        visited = set()
+        
+        while queue:
+            current_station, distance = queue.popleft()
+            
+            if current_station == end_station:
+                return distance
+            
+            if current_station not in visited:
+                visited.add(current_station)
+                for neighbor in adjacency_list.get(current_station, []):
+                    if neighbor not in visited:
+                        queue.append((neighbor, distance + 1))
+        
+        return float('inf')  # Return infinity if no route exists
+
+    # Generate all unique pairs
+    stations = list(adjacency_list.keys())
+    result = []
+    
+    for i in range(len(stations)):
+        for j in range(i + 1, len(stations)):
+            station1 = stations[i]
+            station2 = stations[j]
+            if bfs_distance(station1, station2) >= min_stations_on_commute - 1:
+                result.append((station1, station2))
+    
+    return result
+
+# copied straight from chat
 def get_station_route(start_end_station_tuple):
     """
     Given two station names, returns a route that connects them using adjacent stations.
@@ -138,3 +227,51 @@ def get_station_route(start_end_station_tuple):
                     queue.append((neighbor, path + [current_station]))
     
     return ["No route found"]
+
+def get_below_station_percent(start_end_station_tuple):
+    """
+    Given two station names, calculates the percent of below-ground stations to the total stations in the route.
+    
+    :param start_end_station_tuple: Tuple containing start and end station names.
+    :param station_platform_levels: Dictionary indicating if stations are "above" or "below" ground.
+    :param adjacent_stations: List of tuples representing directly connected stations.
+    :return: A below_count / total_count
+    """
+    (start_station, end_station) = start_end_station_tuple
+
+    # Create adjacency list
+    adjacency_list = {}
+    for station1, station2 in adjacent_stations:
+        if station1 not in adjacency_list:
+            adjacency_list[station1] = []
+        if station2 not in adjacency_list:
+            adjacency_list[station2] = []
+        adjacency_list[station1].append(station2)
+        adjacency_list[station2].append(station1)
+    
+    # BFS setup
+    queue = deque([(start_station, [])])  # Queue holds (current_station, path_taken_so_far)
+    visited = set()  # To track visited stations
+
+    # BFS to find the shortest path
+    while queue:
+        current_station, path = queue.popleft()
+        
+        # If we reached the destination
+        if current_station == end_station:
+            route = path + [current_station]
+            # Calculate below-ground station percent
+            below_count = sum(1 for station in route if station_above_or_below.get(station) == "below")
+            total_count = len(route)
+            return (below_count / total_count) * 100
+    
+        # Mark the station as visited
+        if current_station not in visited:
+            visited.add(current_station)
+            
+            # Enqueue all adjacent stations that haven't been visited
+            for neighbor in adjacency_list.get(current_station, []):
+                if neighbor not in visited:
+                    queue.append((neighbor, path + [current_station]))
+    
+    return float('inf')  # Return inf if no route is found

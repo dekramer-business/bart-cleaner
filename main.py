@@ -180,6 +180,7 @@ def commuter_string_helper(commute_tuple, commute_time_dist = None):
         return commute_tuple[0] + ' to ' + commute_tuple[1]
     
 # generate, plot, analyze all commutes of n length
+# plots are dose/time vs percent underground
 def analyze_all_possible_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, stations_n_distance):
     if None in [all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, stations_n_distance]: 
         return None
@@ -217,6 +218,7 @@ def analyze_all_possible_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_
     print(f"Pearson's r: {round(pearson_r, 3)}, p-value: {p_value:.3e}")
 
 # analyze 4 commuters more in depth
+# only considers dose per percent underground
 def analyze_compare_some_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, save_to_csv = False):
     if None in [all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim]: 
         return None

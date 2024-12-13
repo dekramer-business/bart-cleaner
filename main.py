@@ -95,8 +95,6 @@ def calculate_dose(C, IR, CF, ED, EF, AT, BW):
     top = C * IR * CF * ED * EF
     bottom = AT * BW
 
-    # print("top/bottom: ", top/bottom)
-    # input("good? ")
     return top/bottom
 
 # takes a commuter (start station, end station), and mean and std deviations for all stations PM, segments PM, and segments Time, num to simulate
@@ -126,16 +124,11 @@ def generate_commute_dose_distribution(commuter = None, all_stations_PM_mean_sd 
     # end_station_Time_mean, end_station_Time_sd = generate_station_time(end_station)
     end_station_Time_mean, end_station_Time_sd = (2,1)
 
-    # average weight
-    average_male_weight = 90.7185
-    average_female_weight = 77.1107
-    BW = None
+    # set average body weight
     if using_male_data:
-        custom_warn("ALERT: Using MALE weight data")
-        BW = average_male_weight
+        BW = 90.7185
     else:
-        custom_warn("ALERT: Using FEMALE weight data")
-        BW = average_female_weight
+        BW = 77.1107
     
     # average IR in m^3/day
     IR = 16
@@ -185,17 +178,117 @@ def commuter_string_helper(commute_tuple, commute_time_dist = None):
         return commute_tuple[0] + ' to ' + commute_tuple[1] + ' (~' + str(round(np.mean(commute_time_dist), 1)) + ' mins)'
     else:
         return commute_tuple[0] + ' to ' + commute_tuple[1]
+    
+# generate, plot, analyze all commutes of n length
+def analyze_all_possible_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, stations_n_distance):
+    if None in [all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, stations_n_distance]: 
+        return None
+
+    # Generate all start and stop combinations with n total stations in the commute
+    stations_n_apart = get_station_pairs_with_min_distance(stations_n_distance)
+
+    # For each commute generate a distribution, then find mean of pm and time (is that redundant?)
+    all_doses_and_ground_percents = []
+    all_percent_below_ground = []  # for pearson test
+    all_dose_per_time = []  # for pearson test
+    for commute in stations_n_apart:
+        times_per_day = 1 # say per day
+        commute_dose_dist, commute_time_dist = generate_commute_dose_distribution(commute, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, times_per_day)
+        commute_dose_mean = sum(commute_dose_dist) / len(commute_dose_dist)
+        commute_time_mean = sum(commute_time_dist) / len(commute_time_dist)
+        commute_dose_per_time = commute_dose_mean/(commute_time_mean * times_per_day)
+
+        commute_below_percent = get_below_station_percent(commute)
+        all_doses_and_ground_percents.append((commute_below_percent, commute_dose_per_time))
+        all_percent_below_ground.append(commute_below_percent)
+        all_dose_per_time.append(commute_dose_per_time)
+
+    if using_male_data:
+        dose_name = "Dose / Commute Time  [ug/(kg * min)]"
+        plot_name = "Male Dose/Time vs Percent Below Ground"
+    else:
+        dose_name = "Dose / Commute Time  [ug/(kg * min)]"
+        plot_name = "Female Dose/Time vs Percent Below Ground"
+
+    plot_list_of_tuples(all_doses_and_ground_percents, (plot_name, "Percent of Commute Below Ground", dose_name))
+
+    # Pearson's correlation on all_percent_below_ground vs all_dose_per_time
+    pearson_r, p_value = pearsonr(all_percent_below_ground, all_dose_per_time)
+    print(f"Pearson's r: {round(pearson_r, 3)}, p-value: {p_value:.3e}")
+
+# analyze 4 commuters more in depth
+def analyze_compare_some_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, save_to_csv = False):
+    if None in [all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim]: 
+        return None
+
+    # make some commuters, get their routes
+    commuterA = ("24th St Mission", "Embarcadero")
+    commuterB = ("Downtown Berkeley", "24th St Mission")
+    commuterC = ("Walnut Creek", "Embarcadero")
+    commuterD = ("Pittsburg/Bay Point", "Rockridge")
+
+    # get distributions for each commuters exposure, save to dictionary   
+    times_per_day = 1 # say per day
+    commuterB_exp_dist, commuterB_time_dist = generate_commute_dose_distribution(commuterB, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, times_per_day)
+    commuterC_exp_dist, commuterC_time_dist = generate_commute_dose_distribution(commuterC, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, times_per_day)
+    commuterD_exp_dist, commuterD_time_dist = generate_commute_dose_distribution(commuterD, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, times_per_day)
+    commuterA_exp_dist, commuterA_time_dist = generate_commute_dose_distribution(commuterA, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, times_per_day)
+    
+    # Create a list of commuter names and their exposure/time distributions
+    commuters = [
+        (commuter_string_helper(commuterA), commuterA_exp_dist, commuterA_time_dist),
+        (commuter_string_helper(commuterB), commuterB_exp_dist, commuterB_time_dist),
+        (commuter_string_helper(commuterC), commuterC_exp_dist, commuterC_time_dist),
+        (commuter_string_helper(commuterD), commuterD_exp_dist, commuterD_time_dist)
+    ]
+
+    # Plot distributions (optional)
+    commute_strings = [commuter[0] for commuter in commuters]
+    if using_male_data:
+        plot_name = "Male Commuters Dose Compared"
+        file_name = "male_commuters_dose_time.csv"
+    else:
+        plot_name = "Female Commuters Dose Compared"
+        file_name = "female_commuters_dose_time.csv"
+    plot_list_of_distributions([commuter[1] for commuter in commuters], commute_strings, (plot_name, "ug/kg", "Density"))
+
+    # Save data to CSV if needed
+    if save_to_csv:
+        print("Saving commuter dose data to CSV")
+        
+        # Prepare the data for CSV
+        data_to_save = []
+        for commuter_name, exp_dist, time_dist in commuters:
+            avg_dose = sum(exp_dist) / len(exp_dist)
+            dose_std = np.std(exp_dist)  # Standard deviation of the exposure
+            avg_time = sum(time_dist) / len(time_dist)
+            time_std = np.std(time_dist)  # Standard deviation of the time
+
+            data_to_save.append([commuter_name, avg_dose, dose_std, avg_time, time_std])
+        
+        # Create DataFrame
+        df = pd.DataFrame(data_to_save, columns=["Commute Name", "Average Dose", "Dose Standard Deviation", "Average Time", "Time Standard Deviation"])
+        save_data_csv(df, file_name)
 
 
 def main():
     # file_path = input("Feed me the csv file_path.")
     file_paths = ['./csvs/red1.csv', './csvs/red2.csv', './csvs/yellow1.csv', './csvs/yellow2.csv']
     data = load_csv(file_paths)
-    num_to_sim = 500
-    stations_n_distance = 5
+
+    # params
+    num_to_sim = 500000
     using_male_data = True
+    save_to_csv = True
+
+    # alert on what data
+    if using_male_data:
+        custom_warn("ALERT: Using MALE weight data")
+    else:
+        custom_warn("ALERT: Using FEMALE weight data")
 
     if data is not None:
+        # Get data
         (red_df, yellow_df) = data
         (red_stations_PM, red_segments_PM, red_segments_Time) = get_pm_and_time(clean_data(red_df), "red", True)
         (yellow_stations_PM, yellow_segments_PM, yellow_segments_Time) = get_pm_and_time(clean_data(yellow_df), "yellow", True)
@@ -213,67 +306,11 @@ def main():
         #! assume 'Rockridge-MacArthur' same as "Orinda-Rockridge"
         all_segments_PM_mean_sd['Rockridge-MacArthur'] = all_segments_PM_mean_sd['Orinda-Rockridge']
         all_segments_Time_mean_sd['Rockridge-MacArthur'] = all_segments_Time_mean_sd['Orinda-Rockridge']
-        custom_warn("ALERT: Remember, we assume Rockridge-MacArthur same as Orinda-Rockridge")
+        custom_warn("ALERT: Assuming Rockridge-MacArthur same as Orinda-Rockridge")
 
-        stations_n_apart = get_station_pairs_with_min_distance(stations_n_distance)
-        print("stations_n_apart: ", stations_n_apart)
+        # analyze_all_possible_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, 5)
 
-        all_doses_and_ground_percents = []
-        all_percent_below_ground = []  # for pearson test
-        all_dose_per_time = []  # for pearson test
-        for commute in stations_n_apart:
-            # return (dose, percent below ground)
-            times_per_day = 1 # only say per trip (1 trip per day)
-            commute_dose_dist, commute_time_dist = generate_commute_dose_distribution(commute, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, 1)
-            commute_dose_mean = sum(commute_dose_dist) / len(commute_dose_dist)
-            commute_time_mean = sum(commute_time_dist) / len(commute_time_dist)
-            commute_dose_per_time = commute_dose_mean/commute_time_mean
-
-            commute_below_percent = get_below_station_percent(commute)
-            all_doses_and_ground_percents.append((commute_below_percent, commute_dose_per_time))
-            all_percent_below_ground.append(commute_below_percent)
-            all_dose_per_time.append(commute_dose_per_time)
-
-        if using_male_data:
-            dose_name = "Male Received Dose/Time [ug/ kg * min]"
-        else:
-            dose_name = "Female Received Dose/Time [ug/ kg * min]"
-
-        plot_list_of_tuples(all_doses_and_ground_percents, ("Commutes With " + str(stations_n_distance) + " Stations or More", "Percent of Commute Below Ground", dose_name))
-
-
-        # Pearson's correlation on all_percent_below_ground vs all_dose_per_time
-        pearson_r, p_value = pearsonr(all_percent_below_ground, all_dose_per_time)
-        print(f"Pearson's r: {round(pearson_r, 3)}, p-value: {p_value:.3e}")
-
-        # # make some commuters, get their routes
-        # commuterA = ("24th St Mission", "Embarcadero")
-        # commuterB = ("Downtown Berkeley", "24th St Mission")
-        # commuterC = ("Walnut Creek", "Embarcadero")
-        # commuterD = ("Pittsburg/Bay Point", "Rockridge")
-
-        # # get distributions for each commuters exposure, save to dictionary   
-        # commuterB_exp_dist, commuterB_time_dist = generate_commute_dose_distribution(commuterB, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim)
-        # commuterC_exp_dist, commuterC_time_dist = generate_commute_dose_distribution(commuterC, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim)
-        # commuterD_exp_dist, commuterD_time_dist = generate_commute_dose_distribution(commuterD, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim)
-        # commuterA_exp_dist, commuterA_time_dist = generate_commute_dose_distribution(commuterA, all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim)
-        # commuters_exp_dist_dict = {commuter_string_helper(commuterA): commuterA_exp_dist, commuter_string_helper(commuterB): commuterB_exp_dist, commuter_string_helper(commuterC): commuterC_exp_dist, commuter_string_helper(commuterD): commuterD_exp_dist}
-
-        # # plot those distributions
-        # commute_strings = [commuter_string_helper(commuterA, commuterA_time_dist), commuter_string_helper(commuterB, commuterB_time_dist), commuter_string_helper(commuterC, commuterC_time_dist), commuter_string_helper(commuterD, commuterD_time_dist)]
-        # if using_male_data:
-        #     plot_name = "Male Commuters Dose Compared"
-        #     file_name = "male_commuter_dose_mean_sd.csv"
-        # else:
-        #     plot_name = "Female Commuters Dose Compared"
-        #     file_name = "female_commuter_dose_mean_sd.csv"
-        # plot_list_of_distributions(commuters_exp_dist_dict.values(), commute_strings, (plot_name, "ug/(kg * day)", "Density"))
-
-
-        # commuters_exp_dist_mean_sd = dict_mean_sd(commuters_exp_dist_dict)
-        # print("saving commuter dose data to csv")
-        # commuters_exp_dist_mean_sd_df = pd.DataFrame(commuters_exp_dist_mean_sd)
-        # save_data_csv(commuters_exp_dist_mean_sd_df, file_name)
+        analyze_compare_some_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, save_to_csv)
         
 
 if __name__ == "__main__":

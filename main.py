@@ -279,7 +279,8 @@ def main():
     data = load_csv(file_paths)
 
     # params
-    num_to_sim = 500000
+    stations_n_distance = 5 # simulate commutes length n
+    num_to_sim = 5000
     using_male_data = True
     save_to_csv = True
 
@@ -310,9 +311,9 @@ def main():
         all_segments_Time_mean_sd['Rockridge-MacArthur'] = all_segments_Time_mean_sd['Orinda-Rockridge']
         custom_warn("ALERT: Assuming Rockridge-MacArthur same as Orinda-Rockridge")
 
-        # analyze_all_possible_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, 5)
+        analyze_all_possible_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, stations_n_distance)
 
-        analyze_compare_some_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, save_to_csv)
+        # analyze_compare_some_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_sd, all_segments_Time_mean_sd, using_male_data, num_to_sim, save_to_csv)
         
 
 if __name__ == "__main__":

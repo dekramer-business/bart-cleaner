@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from scipy.stats import pearsonr
+from scipy.stats import linregress
 from raw_csv_handling import *
 from station_handling import *
 from bart_plotting import *
@@ -187,7 +187,7 @@ def analyze_all_possible_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_
 
     # Generate all start and stop combinations with n total stations in the commute
     stations_n_apart = get_station_pairs_with_min_distance(stations_n_distance)
-    print("Number of stations n apart: ", len(stations_n_apart))
+    # print("Number of stations n apart: ", len(stations_n_apart))
 
     # For each commute generate a distribution, then find mean of pm and time (is that redundant?)
     all_doses_and_ground_percents = []
@@ -214,9 +214,9 @@ def analyze_all_possible_commutes(all_stations_PM_mean_sd, all_segments_PM_mean_
 
     plot_list_of_tuples(all_doses_and_ground_percents, (plot_name, "Percent of Commute Below Ground", dose_name))
 
-    # Pearson's correlation on all_percent_below_ground vs all_dose_per_time
-    pearson_r, p_value = pearsonr(all_percent_below_ground, all_dose_per_time)
-    print(f"Pearson's r: {round(pearson_r, 3)}, p-value: {p_value:.3e}")
+    slope, intercept, r_value, p_value, std_err = linregress(all_percent_below_ground, all_dose_per_time)
+    print(f"Pearson's r: {round(r_value, 3)}, p-value: {p_value:.3e}")
+    print(f"Slope of the regression line: {slope:.3e}")
 
 # analyze 4 commuters more in depth
 # only considers dose per percent underground
@@ -281,7 +281,7 @@ def main():
 
     # params
     stations_n_distance = 5 # simulate commutes length n
-    num_to_sim = 5000
+    num_to_sim = 500
     using_male_data = False
     save_to_csv = False
 
